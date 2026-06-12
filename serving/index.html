@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Student Risk Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen flex items-center justify-center overflow-hidden">
+
+    <div class="bg-animation"></div>
+
+    <div class="card p-8 rounded-2xl shadow-2xl w-[500px]">
+
+        <h2 class="text-2xl font-bold text-center mb-6 text-white">
+            🎓 Student Performance Predictor
+        </h2>
+
+        <form id="form" class="grid grid-cols-2 gap-3">
+
+            <input placeholder="GPA" id="prior_gpa" class="input">
+            <input placeholder="Attendance %" id="attendance_pct" class="input">
+            <input placeholder="Quiz Avg" id="quiz_avg" class="input">
+            <input placeholder="Assignment Avg" id="assign_avg" class="input">
+            <input placeholder="Midterm" id="midterm" class="input">
+            <input placeholder="Study Hours" id="study_hours_wk" class="input">
+            <input placeholder="On-time submissions (%)" id="on_time_submit_pct" class="input">
+            <input placeholder="Learning Management System Logins" id="lms_logins_wk" class="input">
+            <input placeholder="Forum Posts" id="forum_posts" class="input">
+            <input placeholder="Commute (min)" id="commute_min" class="input">
+
+            <select id="gender" class="input">
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+            </select>
+
+            <select id="school_type" class="input">
+                <option value="Govt">Govt</option>
+                <option value="Private">Private</option>
+            </select>
+
+            <select id="parent_edu" class="input col-span-2">
+                <option value="Primary">Primary</option>
+                <option value="Secondary">Secondary</option>
+                <option value="UG">UG</option>
+                <option value="PG">PG</option>
+            </select>
+
+            <button type="submit"
+                class="col-span-2 bg-blue-600 text-white py-2 rounded-xl hover:scale-105 hover:bg-blue-700 transition duration-300">
+                Predict 🚀
+            </button>
+        </form>
+
+        <div id="loading" class="hidden text-center mt-3 text-white animate-pulse">
+            ⏳ Predicting...
+        </div>
+
+        <div id="resultBox" class="mt-5 text-center hidden">
+            <div id="result"></div>
+        </div>
+
+    </div>
+
+    <style>
+        /* 🌌 Background */
+        .bg-animation {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, #3b82f6, #9333ea, #06b6d4);
+            background-size: 400% 400%;
+            animation: gradientMove 10s ease infinite;
+            z-index: -1;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 🧊 Card */
+        .card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(15px);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* ✨ Floating */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* 🔥 INPUT FIXED */
+        .input {
+            padding: 10px;
+            border-radius: 10px;
+            background: white;
+            color: #111;
+            font-weight: 600;
+            border: 1px solid #ccc;
+            transition: 0.3s;
+        }
+
+        .input::placeholder { color: #888; }
+
+        .input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 10px #3b82f6;
+        }
+
+        select option {
+            color: black;
+            background: white;
+        }
+    </style>
+
+    <script>
+        document.getElementById("form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const data = {
+                prior_gpa: parseFloat(prior_gpa.value),
+                attendance_pct: parseFloat(attendance_pct.value),
+                quiz_avg: parseFloat(quiz_avg.value),
+                assign_avg: parseFloat(assign_avg.value),
+                midterm: parseFloat(midterm.value),
+                study_hours_wk: parseFloat(study_hours_wk.value),
+                on_time_submit_pct: parseFloat(on_time_submit_pct.value),
+                lms_logins_wk: parseFloat(lms_logins_wk.value),
+                forum_posts: parseFloat(forum_posts.value),
+                commute_min: parseFloat(commute_min.value),
+                gender: gender.value,
+                school_type: school_type.value,
+                parent_edu: parent_edu.value
+            };
+
+            document.getElementById("loading").classList.remove("hidden");
+
+            try {
+                const res = await fetch("http://127.0.0.1:8000/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+
+                document.getElementById("loading").classList.add("hidden");
+                document.getElementById("resultBox").classList.remove("hidden");
+
+                if (!result.risk_prob && result.risk_prob !== 0) {
+                    document.getElementById("result").innerHTML =
+                        `<span class="text-red-500">❌ Error: ${result.error || "Something went wrong"}</span>`;
+                    return;
+                }
+
+                let color = result.at_risk ? "text-red-500" : "text-green-500";
+                let status = result.at_risk ? "⚠️ At Risk" : "✅ Safe";
+
+                document.getElementById("result").innerHTML = `
+                <div class="p-4 rounded-xl bg-white shadow-md">
+                    <h2 class="text-xl font-bold ${color}">
+                        Risk: ${(result.risk_prob * 100).toFixed(2)}%
+                    </h2>
+                    <p class="${color}">${status}</p>
+                </div>
+                `;
+
+            } catch (err) {
+                document.getElementById("loading").classList.add("hidden");
+                document.getElementById("resultBox").classList.remove("hidden");
+                document.getElementById("result").innerHTML =
+                    `<span class="text-red-500">❌ Server Error</span>`;
+            }
+        });
+    </script>
+
+</body>
+</html>
