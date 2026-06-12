@@ -6,5 +6,3 @@ scikit-learn
 xgboost
 joblib
 python-multipart
-logistic-regression
-random-forest
