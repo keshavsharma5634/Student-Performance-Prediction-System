@@ -141,7 +141,7 @@
             document.getElementById("loading").classList.remove("hidden");
 
             try {
-                const res = await fetch("http://127.0.0.1:8000/predict", {
+                const res = await fetch("https://student-performance-prediction-system-1-7xkt.onrender.com/predict", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
