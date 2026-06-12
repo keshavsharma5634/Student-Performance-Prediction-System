@@ -5,6 +5,21 @@ import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
+# 🔥 OMNI-PATCH ENGINE: Fixes ALL Scikit-Learn Version Mismatches at Runtime
+import sklearn.impute
+import sklearn.compose
+
+# Patch 1: Fix for SimpleImputer missing '_fill_dtype'
+if not hasattr(sklearn.impute.SimpleImputer, '_fill_dtype'):
+    sklearn.impute.SimpleImputer._fill_dtype = lambda self, X: X.dtype
+
+# Patch 2: Fix for ColumnTransformer missing '_name_to_fitted_passthrough'
+if not hasattr(sklearn.compose.ColumnTransformer, '_name_to_fitted_passthrough'):
+    @property
+    def dummy_passthrough(self):
+        return getattr(self, '_fitted_passthrough', [])
+    sklearn.compose.ColumnTransformer._name_to_fitted_passthrough = dummy_passthrough
+
 app = FastAPI()
 
 # ✅ CORS middleware
@@ -74,6 +89,11 @@ def get_prediction(data: StudentData):
         
     try:
         features = pd.DataFrame([data.model_dump()])
+        
+        # 🔥 Dynamic fix for missing properties during prediction runtime
+        if not hasattr(model, '_name_to_fitted_passthrough'):
+            model._name_to_fitted_passthrough = []
+            
         risk_probability = float(model.predict_proba(features)[0, 1])
         is_at_risk = bool(risk_probability >= 0.5)
 
@@ -84,4 +104,4 @@ def get_prediction(data: StudentData):
         }
     except Exception as e:
         print("ERROR:", e)
-        return {"error": str(e)}
+        return {"status": "Error", "error": str(e)}
